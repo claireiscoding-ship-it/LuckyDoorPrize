@@ -1,0 +1,377 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Join the draw</title>
+
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      background: linear-gradient(135deg, #22c55e, #3b82f6, #a855f7);
+      color: #fff;
+    }
+
+    .center-screen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.18);
+      backdrop-filter: blur(16px);
+      border-radius: 26px;
+      padding: 34px 30px;
+      width: 92%;
+      max-width: 380px;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+    }
+
+    .icon {
+      font-size: 56px;
+      margin-bottom: 10px;
+    }
+
+    input {
+      width: 90%;
+      padding: 12px;
+      border-radius: 12px;
+      border: none;
+      font-size: 16px;
+      margin-bottom: 12px;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      border-radius: 12px;
+      border: none;
+      background: linear-gradient(135deg, #22c55e, #3b82f6, #a855f7);
+      color: #052e16;
+      font-weight: 800;
+      font-size: 15px;
+      cursor: pointer;
+    }
+
+    .status-text {
+      margin-top: 16px;
+      font-weight: 700;
+    }
+
+    .big-text {
+      font-size: 32px;
+      font-weight: 900;
+      margin-bottom: 8px;
+    }
+
+    .sub-text {
+      font-size: 16px;
+      opacity: 0.9;
+    }
+
+    .drawing-text {
+      font-size: 32px;
+      font-weight: 900;
+      animation: pulse 1.2s infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        transform: scale(1)
+      }
+
+      50% {
+        transform: scale(1.08)
+      }
+    }
+
+    /* ===== WINNER FX ===== */
+    .winner-wrap {
+      animation: winnerPop 0.6s cubic-bezier(.22, 1.2, .36, 1) forwards;
+    }
+
+    .winner-title {
+      font-size: 42px;
+      font-weight: 900;
+      margin-bottom: 10px;
+      text-shadow:
+        0 0 20px rgba(255, 255, 255, 0.6),
+        0 0 40px rgba(255, 255, 255, 0.35);
+    }
+
+    .winner-sub {
+      font-size: 18px;
+      opacity: 0.9;
+    }
+
+    @keyframes winnerPop {
+      0% {
+        transform: scale(0.7);
+        opacity: 0;
+      }
+
+      60% {
+        transform: scale(1.05);
+        opacity: 1;
+      }
+
+      100% {
+        transform: scale(1);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCG9tc8NZ1HcAJlA9EAsTMamCM_DgRpiOw",
+      authDomain: "lucky-draw-41293.firebaseapp.com",
+      databaseURL: "https://lucky-draw-41293-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "lucky-draw-41293"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const params = new URLSearchParams(location.search);
+    const eventId = params.get("e");
+
+    const root = document.getElementById("root");
+
+    let userId = localStorage.getItem("userId");
+    if (!userId) {
+      userId = Math.random().toString(36).substring(2, 12);
+      localStorage.setItem("userId", userId);
+    }
+
+    let hasFinishedRound = false;
+
+
+    const lockKey = "joined_" + eventId;
+
+    let hasJoined = false;
+    let currentView = "form"; // form | waiting | drawing | done
+
+    function autoJoin() {
+      if (localStorage.getItem(lockKey)) {
+        hasJoined = true;
+        renderJoinedWaiting();
+        return;
+      }
+
+      // 🔒 lock immediately
+      localStorage.setItem(lockKey, "pending");
+
+      const counterRef = db.ref("events/" + eventId + "/counter");
+      const entryRef = db.ref("entries/" + eventId + "/" + userId);
+
+      // 🛑 double protection: check DB first
+      entryRef.once("value").then(snap => {
+        if (snap.exists()) {
+          hasJoined = true;
+          renderJoinedWaiting();
+          return;
+        }
+
+        counterRef.transaction(current => (current || 0) + 1)
+          .then(result => {
+            if (!result.committed) return;
+
+            const num = result.snapshot.val();
+            const ticketNumber = String(num).padStart(4, "0");
+
+            return entryRef.set({
+              userId,
+              ticketNumber,
+              ts: Date.now()
+            }).then(() => {
+              localStorage.setItem("ticket_" + eventId, ticketNumber);
+              localStorage.setItem(lockKey, "joined");
+              hasJoined = true;
+              renderJoinedWaiting();
+            });
+          });
+      });
+    }
+
+
+
+    function renderJoinedWaiting() {
+      currentView = "waiting";
+
+      const ticketNumber = localStorage.getItem("ticket_" + eventId);
+
+      root.innerHTML = `
+    <div class="center-screen">
+      <div>
+        <div class="big-text">✅ You're in!</div>
+        <div class="sub-text">
+          Your ticket number is
+        </div>
+        <div style="
+          font-size:36px;
+          font-weight:900;
+          margin-top:8px;
+        ">
+          🎟️ #${ticketNumber}
+        </div>
+        <div class="sub-text" style="margin-top:10px;">
+          Waiting for the draw…
+        </div>
+      </div>
+    </div>
+  `;
+    }
+    function renderRoundReset() {
+      currentView = "waiting";
+      hasFinishedRound = false; // 👈 QUAN TRỌNG
+
+      root.innerHTML = `
+    <div class="center-screen">
+      <div>
+        <div class="big-text">🔄 New round started!</div>
+        <div class="sub-text">Waiting for the next draw…</div>
+      </div>
+    </div>
+  `;
+    }
+
+
+
+
+
+    function renderDrawing() {
+      currentView = "drawing";
+      root.innerHTML = `
+        <div class="center-screen">
+          <div class="drawing-text">🎡 Drawing…</div>
+        </div>
+      `;
+    }
+
+    function renderResult(win, ticketNumber) {
+      currentView = "done";
+
+      if (win) {
+        root.innerHTML = `
+      <div class="center-screen" style="
+        background: linear-gradient(135deg,#22c55e,#3b82f6,#a855f7);
+      ">
+        <div class="winner-wrap">
+  <div class="winner-title">🎉 YOU WIN!</div>
+  <div class="winner-sub">
+    Your ticket 🎟️ #${ticketNumber} won!
+  </div>
+</div>
+    `;
+
+        // 🎉 CONFETTI BURST 1 – nổ mạnh
+        confetti({
+          particleCount: 220,
+          spread: 120,
+          startVelocity: 45,
+          origin: { y: 0.6 }
+        });
+
+        // 🎉 CONFETTI BURST 2 – rơi nhẹ
+        setTimeout(() => {
+          confetti({
+            particleCount: 140,
+            spread: 160,
+            gravity: 0.7,
+            origin: { y: 0.2 }
+          });
+        }, 700);
+
+        // ✨ CONFETTI RAIN – vui nhưng không lố
+        setTimeout(() => {
+          const end = Date.now() + 1200;
+          (function frame() {
+            confetti({
+              particleCount: 6,
+              spread: 70,
+              startVelocity: 25,
+              origin: {
+                x: Math.random(),
+                y: Math.random() * 0.3
+              }
+            });
+            if (Date.now() < end) requestAnimationFrame(frame);
+          })();
+        }, 1200);
+
+      } else {
+        root.innerHTML = `
+      <div class="center-screen" style="
+        background: linear-gradient(135deg,#3b82f6,#9333ea);
+      ">
+        <div>
+          <div style="font-size:32px;">😅 Not this time</div>
+          <div style="opacity:0.9;">Thanks for joining!</div>
+        </div>
+      </div>
+    `;
+      }
+    }
+
+
+    // On load: if this device already joined this event → skip form
+    autoJoin();
+
+
+
+    // Listen for draw status
+    db.ref("status/" + eventId).on("value", snap => {
+      if (!snap.exists()) return;
+      if (!hasJoined || currentView === "done") return;
+
+      const s = snap.val();
+      if (s === "waiting") {
+        // do nothing
+      }
+      if (s === "drawing" && currentView !== "drawing") {
+        renderDrawing();
+      }
+    });
+
+    // Listen for winner
+    db.ref("winner/" + eventId).on("value", snap => {
+
+      if (snap.exists()) {
+        if (hasFinishedRound) return; // 👈 chặn double fire
+        hasFinishedRound = true;
+
+        const w = snap.val();
+        const isWin = w.userId === userId;
+        renderResult(isWin, w.ticketNumber);
+        return;
+      }
+
+      // === WINNER BỊ XOÁ → chỉ reset nếu đã từng có vòng ===
+      if (
+        hasFinishedRound &&
+        hasJoined &&
+        currentView === "done"
+      ) {
+        renderRoundReset();
+      }
+    });
+  </script>
+</body>
+
+</html>

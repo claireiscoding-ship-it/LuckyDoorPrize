@@ -1,0 +1,715 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Lucky Draw – Host</title>
+
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      height: 100%;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      background: radial-gradient(circle at top, #fde68a, #c4b5fd, #6366f1);
+      color: #fff;
+
+      display: grid;
+      place-items: center;
+    }
+
+    body::before {
+      background: linear-gradient(180deg,
+          #fde68a 0%,
+          #c4b5fd 40%,
+          #6366f1 100%);
+    }
+
+    .screen {
+      max-width: 520px;
+      padding: 48px 36px;
+      text-align: center;
+
+      background: rgba(255, 255, 255, 0.28);
+      backdrop-filter: blur(16px);
+      border-radius: 28px;
+
+      box-shadow:
+        0 30px 60px rgba(0, 0, 0, 0.18),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4);
+
+      position: relative;
+    }
+
+    .screen h1 {
+      margin-bottom: 10px;
+      font-size: 44px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+
+      background: linear-gradient(90deg,
+          #4c1d95,
+          #7c3aed,
+          #f59e0b);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .screen .sub {
+      font-size: 15px;
+      line-height: 1.6;
+      color: #4c1d95;
+      opacity: 0.75;
+      margin-bottom: 32px;
+    }
+
+    .screen button {
+      background: linear-gradient(135deg, #fde68a, #fbbf24);
+      color: #78350f;
+      border: none;
+      padding: 14px 26px;
+      border-radius: 16px;
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+
+      position: relative;
+      overflow: hidden;
+
+      box-shadow: 0 10px 25px rgba(251, 191, 36, 0.45);
+      transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease;
+    }
+
+    .screen button:hover {
+      transform: translateY(-2px) scale(1.04);
+      box-shadow: 0 18px 40px rgba(251, 191, 36, 0.6);
+      filter: brightness(1.08);
+    }
+
+    .screen button:active {
+      transform: scale(0.97);
+    }
+
+    button:hover {
+      transform: translateY(-2px) scale(1.03);
+      box-shadow: 0 18px 40px rgba(251, 191, 36, 0.6);
+      filter: brightness(1.08);
+    }
+
+    .screen::before {
+      content: "";
+      position: absolute;
+      inset: -60px;
+      background: radial-gradient(circle at top,
+          rgba(251, 191, 36, 0.35),
+          transparent 65%);
+      z-index: -1;
+    }
+
+    .primary-btn {
+      margin-top: 32px;
+
+      background: linear-gradient(135deg, #fde68a, #fbbf24);
+      color: #78350f;
+      border: none;
+      padding: 14px 26px;
+      border-radius: 16px;
+
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+
+      position: relative;
+      overflow: hidden;
+
+      box-shadow: 0 10px 25px rgba(251, 191, 36, 0.45);
+      transition:
+        transform 0.25s ease,
+        box-shadow 0.25s ease,
+        filter 0.25s ease;
+    }
+
+    .primary-btn:hover {
+      transform: translateY(-2px) scale(1.04);
+      box-shadow: 0 18px 40px rgba(251, 191, 36, 0.6);
+      filter: brightness(1.08);
+    }
+
+    .primary-btn:active {
+      transform: scale(0.97);
+    }
+
+    .qr-wrap {
+      margin: 20px auto;
+      padding: 22px;
+      background: #fff;
+      border-radius: 24px;
+      display: inline-block;
+      animation: pulse 2.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        transform: scale(1)
+      }
+
+      50% {
+        transform: scale(1.05)
+      }
+    }
+
+    .qr-wrap img {
+      width: 260px;
+      height: 260px;
+    }
+
+    .scan {
+      font-size: 32px;
+      font-weight: 900;
+      margin-top: 16px;
+      animation: bounce 1.6s infinite;
+    }
+
+    @keyframes bounce {
+
+      0%,
+      100% {
+        transform: translateY(0)
+      }
+
+      50% {
+        transform: translateY(-8px)
+      }
+    }
+
+    .count {
+      margin-top: 12px;
+      font-size: 22px;
+      font-weight: 800;
+    }
+
+    .names {
+      margin-top: 20px;
+      max-height: 260px;
+      overflow-y: auto;
+      padding: 12px;
+
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .name-item {
+      padding: 8px 16px;
+      border-radius: 999px;
+      font-size: 15px;
+      font-weight: 600;
+
+      background: rgba(255, 255, 255, 0.75);
+      color: #2e1065;
+
+      opacity: 1;
+
+      box-shadow:
+        0 4px 10px rgba(0, 0, 0, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.5);
+
+      transition:
+        transform 0.25s ease,
+        box-shadow 0.25s ease,
+        opacity 0.25s ease;
+    }
+
+    /* ===== ROULETTE SLOT (FAST MODE) ===== */
+    .roulette-wrap {
+      transform: scale(1.25);
+    }
+
+    @keyframes rouletteGlow {
+      0% {
+        box-shadow:
+          0 40px 90px rgba(0, 0, 0, 0.45),
+          0 0 0 rgba(124, 58, 237, 0.4);
+      }
+
+      50% {
+        box-shadow:
+          0 45px 110px rgba(0, 0, 0, 0.55),
+          0 0 60px rgba(124, 58, 237, 0.45);
+      }
+
+      100% {
+        box-shadow:
+          0 40px 90px rgba(0, 0, 0, 0.45),
+          0 0 0 rgba(124, 58, 237, 0.4);
+      }
+    }
+
+    .roulette-title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.4em;
+      text-transform: uppercase;
+
+      color: rgba(255, 255, 255, 0.65);
+      margin-bottom: 16px;
+
+      text-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+    }
+
+    .roulette-slot {
+      min-width: 360px;
+      padding: 24px 32px;
+      border-radius: 24px;
+
+      font-size: 42px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+
+      color: #2e1065;
+
+      background: linear-gradient(135deg,
+          rgba(255, 255, 255, 0.75),
+          rgba(255, 255, 255, 0.55));
+      backdrop-filter: blur(14px);
+
+      box-shadow:
+        0 30px 60px rgba(0, 0, 0, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.6);
+
+      text-align: center;
+
+      animation: slotShake 0.18s infinite;
+    }
+
+    @keyframes slotShake {
+      0% {
+        transform: translateY(0) scale(1);
+      }
+
+      50% {
+        transform: translateY(-2px) scale(1.02);
+      }
+
+      100% {
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .roulette-sub {
+      margin-top: 20px;
+
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+
+      color: rgba(255, 255, 255, 0.75);
+
+      animation: spinPulse 1.1s ease-in-out infinite;
+    }
+
+    @keyframes spinPulse {
+      0% {
+        opacity: 0.4;
+      }
+
+      50% {
+        opacity: 0.85;
+      }
+
+      100% {
+        opacity: 0.4;
+      }
+    }
+
+    .center-roulette {
+      background: radial-gradient(circle,
+          rgba(0, 0, 0, 0.35),
+          rgba(0, 0, 0, 0.55));
+    }
+
+    .final-winner {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: radial-gradient(circle at top, #a78bfa, #4338ca 40%, #020617 85%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      animation: fadeIn .6s ease forwards;
+    }
+
+    .final-winner small {
+      font-size: 14px;
+      letter-spacing: 4px;
+      opacity: .75;
+      margin-bottom: 14px;
+    }
+
+    .center-roulette {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* fade out chung */
+    .fade-out {
+      animation: fadeOut 0.45s ease forwards;
+    }
+
+    @keyframes fadeOut {
+      to {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.96);
+      }
+    }
+
+    /* cho QR + list nhìn mượt hơn */
+    .fade-wrapper {
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+
+    .final-winner .name {
+      font-size: clamp(56px, 10vw, 110px);
+      font-weight: 900;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: scale(.96)
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1)
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="screen" id="landing">
+    <h1>Lucky Draw 🎉</h1>
+    <div class="sub">Create a draw and let guests scan to enter</div>
+    <button id="createBtn">Create draw session</button>
+  </div>
+
+  <div class="screen" id="drawScreen" style="display:none">
+    <h1>Scan to join</h1>
+    <div class="qr-wrap"><img id="qrImage" /></div>
+    <div class="scan">Scan Me</div>
+    <div id="count" class="count">0 entries</div>
+    <div id="names" class="names"></div>
+    <div id="history" class="names" style="margin-top:24px; opacity:.85"></div>
+    <button id="drawBtn" style="margin-top:24px">🎡 Draw winner</button>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <script>
+    /* =========================
+       Firebase init
+    ========================== */
+    const firebaseConfig = {
+      apiKey: "AIzaSyCG9tc8NZ1HcAJlA9EAsTMamCM_DgRpiOw",
+      authDomain: "lucky-draw-41293.firebaseapp.com",
+      databaseURL: "https://lucky-draw-41293-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "lucky-draw-41293"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    /* =========================
+       DOM refs
+    ========================== */
+    const landing = document.getElementById("landing");
+    const drawScreen = document.getElementById("drawScreen");
+    const createBtn = document.getElementById("createBtn");
+    const drawBtn = document.getElementById("drawBtn");
+    const qrImage = document.getElementById("qrImage");
+
+    const countEl = document.getElementById("count");
+    const namesEl = document.getElementById("names");
+    const historyEl = document.getElementById("history");
+
+    /* =========================
+       State
+    ========================== */
+    let eventId = null;
+    let entries = [];
+    let winners = {};
+
+    // Track overlays so we can cleanly remove them
+    let rouletteOverlayEl = null;
+    let winnerOverlayEl = null;
+
+    /* =========================
+       Bad words
+    ========================== */
+    let renderScheduled = false;
+    let lastRenderedIndex = 0;
+
+    function render() {
+      countEl.textContent = entries.length + " tickets";
+
+      const frag = document.createDocumentFragment();
+
+      for (let i = lastRenderedIndex; i < entries.length; i++) {
+        const e = entries[i];
+        const div = document.createElement("div");
+        div.className = "name-item";
+        div.textContent = "🎟️ Ticket #" + e.ticketNumber;
+        frag.appendChild(div);
+      }
+
+      namesEl.appendChild(frag);
+      lastRenderedIndex = entries.length;
+    }
+
+
+    function scheduleRender() {
+      if (renderScheduled) return;
+
+      renderScheduled = true;
+
+      requestAnimationFrame(() => {
+        renderScheduled = false;
+        render();
+      });
+    }
+
+
+    function renderWinnerHistory() {
+      if (!Object.keys(winners).length) {
+        historyEl.innerHTML = "";
+        return;
+      }
+
+      historyEl.style.display = "flex"; // 👈 force visible
+
+      const list = Object.values(winners).sort((a, b) => a.ts - b.ts);
+
+      historyEl.innerHTML = `
+    <div style="width:100%; font-weight:800; margin-bottom:6px;">
+      🏆 Winner History
+    </div>
+    ${list.map(w =>
+        `<div class="name-item history-item">🎟️ Ticket #${w.ticketNumber}</div>`
+      ).join("")}
+  `;
+    }
+
+    /* =========================
+       Firebase listeners
+    ========================== */
+    function listenEntries() {
+      entries = [];
+      db.ref("entries/" + eventId).off();
+
+      db.ref("entries/" + eventId).on("child_added", snap => {
+        entries.push(snap.val());
+        scheduleRender();
+      });
+    }
+
+    function listenWinners() {
+      db.ref("winners/" + eventId).off();
+
+      db.ref("winners/" + eventId).on("value", snap => {
+        winners = snap.exists() ? snap.val() : {};
+        renderWinnerHistory();
+      });
+    }
+
+    /* =========================
+       Roulette + Winner
+    ========================== */
+    function fastRoulette(displayPool, eligiblePool) {
+      namesEl.style.display = "none";
+      historyEl.style.display = "flex";
+
+      const wrap = document.createElement("div");
+      wrap.className = "roulette-wrap";
+      wrap.innerHTML = `
+    <div class="roulette-title">🎰 LUCKY DRAW 🎰</div>
+    <div class="roulette-slot" id="rouletteSlot">---</div>
+    <div class="roulette-sub">Spinning...</div>
+  `;
+
+      const center = document.createElement("div");
+      center.className = "center-roulette";
+      center.appendChild(wrap);
+      rouletteOverlayEl = center;
+      document.body.appendChild(center);
+
+      const slot = document.getElementById("rouletteSlot");
+
+      const start = performance.now();
+      const duration = 5000;
+
+      function spin(now) {
+        const idx = Math.floor(Math.random() * displayPool.length);
+        slot.textContent = "🎟️ Ticket #" + displayPool[idx].ticketNumber;
+
+        if (now - start < duration) {
+          requestAnimationFrame(spin);
+        } else {
+          // 🎯 CHỐT CHỈ TỪ eligiblePool
+          const finalWinner =
+            eligiblePool[Math.floor(Math.random() * eligiblePool.length)];
+
+          announceWinner(finalWinner);
+        }
+      }
+
+      requestAnimationFrame(spin);
+    }
+
+    function announceWinner(winner) {
+      // 🔒 permanently block winner (history + exclusion)
+      db.ref("winners/" + eventId + "/" + winner.userId).set({
+        ticketNumber: winner.ticketNumber,
+        ts: Date.now()
+      });
+
+      // 🎉 current round winner (for guests)
+      db.ref("winner/" + eventId).set({
+        ticketNumber: winner.ticketNumber,
+        userId: winner.userId,
+        ts: Date.now()
+      });
+
+      // remove roulette overlay if present
+      if (rouletteOverlayEl) {
+        rouletteOverlayEl.remove();
+        rouletteOverlayEl = null;
+      }
+
+      // show winner overlay
+      const w = document.createElement("div");
+      w.className = "final-winner";
+      w.innerHTML = `
+    <small>WINNER</small>
+    <div class="name">🎟️ Ticket #${winner.ticketNumber}</div>
+    <button id="spinAgainBtn" class="primary-btn">🎡 Spin again</button>
+  `;
+      document.body.appendChild(w);
+      winnerOverlayEl = w;
+
+      confetti({
+        particleCount: 260,
+        spread: 120,
+        startVelocity: 45,
+        origin: { y: 0.6 },
+        zIndex: 10000
+      });
+
+      document.getElementById("spinAgainBtn").onclick = () => {
+        db.ref("winner/" + eventId).remove();
+        db.ref("status/" + eventId).set("waiting");
+
+
+        if (winnerOverlayEl) {
+          winnerOverlayEl.remove();
+          winnerOverlayEl = null;
+        }
+
+        drawScreen.classList.remove("fade-out");
+        drawScreen.style.display = "block";
+
+        namesEl.style.display = "flex";
+        render();
+        renderWinnerHistory();
+      };
+    }
+
+
+    /* =========================
+       Buttons
+    ========================== */
+    createBtn.onclick = () => {
+      eventId = Math.random().toString(36).substring(2, 10);
+      window.eventId = eventId; // 👈 for console testing
+      db.ref("events/" + eventId + "/counter").set(0);
+
+
+      db.ref("status/" + eventId).set("waiting");
+      db.ref("winner/" + eventId).remove();    // ✅ clear current winner
+      db.ref("winners/" + eventId).remove();   // reset winner history
+      winners = {};                    // ✅ reset local cache too   // clear only current winner
+      // reset winners for new draw
+
+      landing.style.display = "none";
+      drawScreen.style.display = "block";
+      drawScreen.classList.remove("fade-out");
+
+      qrImage.src =
+        "https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=" +
+        encodeURIComponent("https://" + location.host + "/join.html?e=" + eventId);
+
+      // show panels
+      namesEl.style.display = "flex";
+      historyEl.style.display = "flex";
+
+      listenEntries();
+      listenWinners();
+
+      console.log("🎯 Draw session created:", eventId);
+    };
+
+    drawBtn.onclick = () => {
+      if (!eventId) {
+        alert("Please create a draw session first");
+        return;
+      }
+
+      const displayPool = entries;
+      const eligiblePool = entries.filter(e => !winners[e.userId]);
+
+      if (!eligiblePool.length) {
+        alert("No eligible players left");
+        return;
+      }
+
+      // ✅ set drawing status (and DON'T wipe winners)
+      db.ref("status/" + eventId).set("drawing");
+
+      const drawScreenEl = document.getElementById("drawScreen");
+      drawScreenEl.classList.add("fade-out");
+
+      setTimeout(() => {
+        fastRoulette(displayPool, eligiblePool);
+      }, 450);
+    };
+
+
+    /* =========================
+       Console test helpers
+       (no QR needed)
+    ========================== */
+  </script>
+</body>
+
+</html>
